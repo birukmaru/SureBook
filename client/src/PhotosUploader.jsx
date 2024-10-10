@@ -2,7 +2,10 @@ import axios from "axios";
 import { useState } from "react";
 import Image from "./Image.jsx";
 
-export default function PhotosUploader({ addedPhotos, onChange }) {
+export default function PhotosUploader({
+  addedPhotos = [],
+  onChange = () => {},
+}) {
   const [photoLink, setPhotoLink] = useState("");
 
   // Function to handle adding a photo using a link
@@ -23,15 +26,25 @@ export default function PhotosUploader({ addedPhotos, onChange }) {
       setPhotoLink("");
     } catch (error) {
       console.error("Failed to upload photo by link:", error);
+      alert("Failed to upload the photo. Please check the URL and try again.");
     }
   }
 
-  // Function to handle file uploads
+  // Function to handle file uploads with basic validation
   function uploadPhoto(ev) {
     const files = ev.target.files;
     const data = new FormData();
 
     for (let i = 0; i < files.length; i++) {
+      // File type and size validation (optional, modify as needed)
+      if (!files[i].type.startsWith("image/")) {
+        alert("Only image files are allowed!");
+        continue;
+      }
+      if (files[i].size > 5 * 1024 * 1024) {
+        alert("File size should be less than 5MB!");
+        continue;
+      }
       data.append("photos", files[i]);
     }
 
@@ -45,6 +58,7 @@ export default function PhotosUploader({ addedPhotos, onChange }) {
       })
       .catch((error) => {
         console.error("Failed to upload photos:", error);
+        alert("Failed to upload photos. Please try again.");
       });
   }
 
@@ -86,7 +100,7 @@ export default function PhotosUploader({ addedPhotos, onChange }) {
               <Image
                 className="rounded-2xl w-full object-cover"
                 src={link}
-                alt=""
+                alt="Uploaded Photo"
               />
               <button
                 onClick={(ev) => removePhoto(ev, link)}
