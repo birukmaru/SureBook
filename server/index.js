@@ -12,7 +12,6 @@ const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const multer = require("multer");
 const fs = require("fs");
 const mime = require("mime-types");
-
 const path = require("path");
 
 require("dotenv").config();
@@ -48,8 +47,6 @@ async function connectToDatabase() {
     console.error("Failed to connect to MongoDB:", error);
   }
 }
-
-// Connect to the database
 connectToDatabase();
 
 async function uploadToS3(path, originalFilename, mimetype) {
@@ -155,7 +152,7 @@ app.post("/api/logout", (req, res) => {
   res.cookie("token", "").json(true);
 });
 app.use(express.static("uploads"));
-// Ensure URL upload with error handling
+
 app.post("/api/upload-by-link", async (req, res) => {
   const { link } = req.body;
   try {
@@ -163,17 +160,16 @@ app.post("/api/upload-by-link", async (req, res) => {
       return res.status(400).json({ error: "Invalid image URL" });
     }
 
+    const ext = path.extname(link) || ".jpg";
+    const filename = `photo-${Date.now()}${ext}`;
     const options = {
       url: link,
-      dest: uploadsDir, // Save to uploads directory
+      dest: path.join(uploadsDir, filename),
     };
 
-    const { filename } = await imageDownloader.image(options);
-    const filePath = filename.replace(/\\/g, "/"); // Normalize path for web
+    await imageDownloader.image(options);
 
-    // Now upload to S3 if required
-    // await uploadToS3(filename);
-
+    const filePath = path.join("uploads", filename).replace(/\\/g, "/"); // Normalize path for web
     res.json({ url: `http://localhost:4000/${filePath}` });
   } catch (error) {
     console.error("Image download failed:", error.message);
@@ -184,9 +180,23 @@ app.post("/api/upload-by-link", async (req, res) => {
 app.use(express.static("uploads"));
 
 const photosMiddleware = multer({ dest: "/tmp" });
-const upload = multer({ dest: uploadsDir });
+
+app.use(express.static(uploadsDir));
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, `photo-${uniqueSuffix}${ext}`);
+  },
+});
+
+const upload = multer({ storage: storage });
+
 app.post("/api/upload", upload.array("photos", 10), (req, res) => {
-  // Handle file uploads
   const fileUrls = req.files.map((file) => {
     return `http://localhost:4000/uploads/${file.filename}`;
   });
@@ -307,7 +317,6 @@ app.get("/api/bookings", async (req, res) => {
   res.json(await Booking.find({ user: userData.id }).populate("place"));
 });
 
-// Start the server and print a message
 const PORT = 4000;
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);

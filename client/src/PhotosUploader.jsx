@@ -4,7 +4,6 @@ import axios from "axios";
 export default function PhotosUploader({ addedPhotos, onChange }) {
   const [photoLink, setPhotoLink] = useState("");
 
-  // Handle adding photos via link
   async function addPhotoByLink(ev) {
     ev.preventDefault();
 
@@ -22,8 +21,8 @@ export default function PhotosUploader({ addedPhotos, onChange }) {
       console.log(response);
 
       const { url } = response.data;
-      onChange((prev) => [...prev, url]); // Add the new URL to the existing photos
-      setPhotoLink(""); // Clear input
+      onChange((prev) => [...prev, url]);
+      setPhotoLink("");
     } catch (error) {
       console.error(
         "Error uploading image by link:",
@@ -32,7 +31,6 @@ export default function PhotosUploader({ addedPhotos, onChange }) {
     }
   }
 
-  // Handle file uploads
   async function uploadPhoto(ev) {
     const files = ev.target.files;
     const data = new FormData();
@@ -48,8 +46,8 @@ export default function PhotosUploader({ addedPhotos, onChange }) {
         }
       );
 
-      const { data: urls } = response; // Adjusted to get the correct response data
-      onChange((prev) => [...prev, ...urls]); // Add all the uploaded files to the existing photos
+      const { data: urls } = response;
+      onChange((prev) => [...prev, ...urls]); 
     } catch (error) {
       console.error(
         "File upload failed:",
