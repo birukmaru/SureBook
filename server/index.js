@@ -8,10 +8,12 @@ const Place = require("./models/Place.js");
 const Booking = require("./models/Booking.js");
 const cookieParser = require("cookie-parser");
 const imageDownloader = require("image-downloader");
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { PutObjectCommand } = require("@aws-sdk/client-s3");
 const multer = require("multer");
 const fs = require("fs");
 const mime = require("mime-types");
+
+const path = require("path");
 
 require("dotenv").config();
 const app = express();
@@ -29,6 +31,12 @@ app.use(
     origin: "http://localhost:5173",
   })
 );
+
+// Ensure the uploads directory exists
+const uploadsDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // Helper function to connect to MongoDB and print a message
 async function connectToDatabase() {
@@ -66,6 +74,16 @@ async function uploadToS3(path, originalFilename, mimetype) {
   );
   return `https://${bucket}.s3.amazonaws.com/${newFilename}`;
 }
+
+const { S3Client } = require("@aws-sdk/client-s3");
+
+const s3 = new S3Client({
+  region: "your-region",
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
 
 function getUserDataFromReq(req) {
   return new Promise((resolve, reject) => {
@@ -136,36 +154,44 @@ app.get("/api/profile", (req, res) => {
 app.post("/api/logout", (req, res) => {
   res.cookie("token", "").json(true);
 });
-
+app.use(express.static("uploads"));
+// Ensure URL upload with error handling
 app.post("/api/upload-by-link", async (req, res) => {
   const { link } = req.body;
-  const newName = "photo" + Date.now() + ".jpg";
-  await imageDownloader.image({
-    url: link,
-    dest: "/tmp/" + newName,
-  });
-  const url = await uploadToS3(
-    "/tmp/" + newName,
-    newName,
-    mime.lookup("/tmp/" + newName)
-  );
-  res.json(url);
+  try {
+    if (!link || !link.match(/\.(jpeg|jpg|gif|png)$/)) {
+      return res.status(400).json({ error: "Invalid image URL" });
+    }
+
+    const options = {
+      url: link,
+      dest: uploadsDir, // Save to uploads directory
+    };
+
+    const { filename } = await imageDownloader.image(options);
+    const filePath = filename.replace(/\\/g, "/"); // Normalize path for web
+
+    // Now upload to S3 if required
+    // await uploadToS3(filename);
+
+    res.json({ url: `http://localhost:4000/${filePath}` });
+  } catch (error) {
+    console.error("Image download failed:", error.message);
+    res.status(400).json({ error: "Image download failed" });
+  }
 });
 
+app.use(express.static("uploads"));
+
 const photosMiddleware = multer({ dest: "/tmp" });
-app.post(
-  "/api/upload",
-  photosMiddleware.array("photos", 100),
-  async (req, res) => {
-    const uploadedFiles = [];
-    for (let i = 0; i < req.files.length; i++) {
-      const { path, originalname, mimetype } = req.files[i];
-      const url = await uploadToS3(path, originalname, mimetype);
-      uploadedFiles.push(url);
-    }
-    res.json(uploadedFiles);
-  }
-);
+const upload = multer({ dest: uploadsDir });
+app.post("/api/upload", upload.array("photos", 10), (req, res) => {
+  // Handle file uploads
+  const fileUrls = req.files.map((file) => {
+    return `http://localhost:4000/uploads/${file.filename}`;
+  });
+  res.json(fileUrls);
+});
 
 app.post("/api/places", (req, res) => {
   const { token } = req.cookies;
