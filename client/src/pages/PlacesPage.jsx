@@ -45,13 +45,13 @@ export default function PlacesPage() {
               className="flex cursor-pointer gap-4 bg-gray-100 p-4 rounded-2xl"
               key={place._id}
             >
-              <div className="flex w-32 h-32 bg-gray-300 items-center justify-center">
+              <div className="flex w-1/3 h-32 bg-gray-300 items-center justify-center">
                 <PlaceImg
                   place={place}
                   className="object-cover w-full h-full"
                 />
               </div>
-              <div className="grow-0 shrink">
+              <div className="flex-1">
                 <h2 className="text-xl">{place.title}</h2>
                 <p className="text-sm mt-3 justify-center items-center">
                   {place.description}
