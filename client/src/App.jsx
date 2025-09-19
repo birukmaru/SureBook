@@ -14,7 +14,7 @@ import BookingsPage from "./pages/BookingsPage";
 import BookingPage from "./pages/BookingPage";
 
 // Set the base URL directly
-axios.defaults.baseURL = "http://localhost:4000/api";
+axios.defaults.baseURL = "https://sure-book-server.vercel.app/api";
 axios.defaults.withCredentials = true;
 
 function App() {
