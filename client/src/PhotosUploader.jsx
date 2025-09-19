@@ -13,7 +13,7 @@ export default function PhotosUploader({ addedPhotos, onChange }) {
       console.log("clicked 1");
 
       const response = await axios.post(
-        "http://localhost:4000/api/upload-by-link",
+        "https://sure-book-server.vercel.app/api/upload-by-link",
         {
           link: photoLink,
         }
@@ -39,7 +39,7 @@ export default function PhotosUploader({ addedPhotos, onChange }) {
     }
     try {
       const response = await axios.post(
-        "http://localhost:4000/api/upload",
+        "https://sure-book-server.vercel.app/api/upload",
         data,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -47,7 +47,7 @@ export default function PhotosUploader({ addedPhotos, onChange }) {
       );
 
       const { data: urls } = response;
-      onChange((prev) => [...prev, ...urls]); 
+      onChange((prev) => [...prev, ...urls]);
     } catch (error) {
       console.error(
         "File upload failed:",

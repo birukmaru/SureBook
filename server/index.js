@@ -170,7 +170,7 @@ app.post("/api/upload-by-link", async (req, res) => {
     await imageDownloader.image(options);
 
     const filePath = path.join("uploads", filename).replace(/\\/g, "/"); // Normalize path for web
-    res.json({ url: `http://localhost:4000/${filePath}` });
+    res.json({ url: `https://sure-book-server.vercel.app/${filePath}` });
   } catch (error) {
     console.error("Image download failed:", error.message);
     res.status(400).json({ error: "Image download failed" });
@@ -198,7 +198,7 @@ const upload = multer({ storage: storage });
 
 app.post("/api/upload", upload.array("photos", 10), (req, res) => {
   const fileUrls = req.files.map((file) => {
-    return `http://localhost:4000/uploads/${file.filename}`;
+    return `https://sure-book-server.vercel.app/uploads/${file.filename}`;
   });
   res.json(fileUrls);
 });

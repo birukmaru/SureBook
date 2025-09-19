@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:4000", // Your backend server
+        target: "https://sure-book-server.vercel.app", // Your backend server
         changeOrigin: true,
         secure: false,
       },
