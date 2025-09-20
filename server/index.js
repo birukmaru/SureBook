@@ -97,6 +97,15 @@ app.get("/api/test", (req, res) => {
 
 app.post("/api/register", async (req, res) => {
   const { name, email, password } = req.body;
+  
+  if (!name || !email || !password) {
+    return res.status(422).json({ message: "Name, email, and password are required" });
+  }
+  
+  if (password.length < 6) {
+    return res.status(422).json({ message: "Password must be at least 6 characters long" });
+  }
+  
   try {
     const userDoc = await User.create({
       name,
@@ -105,7 +114,15 @@ app.post("/api/register", async (req, res) => {
     });
     res.json(userDoc);
   } catch (e) {
-    res.status(422).json(e);
+    console.error("Registration error:", e);
+    if (e.code === 11000) {
+      res.status(422).json({ message: "Email already exists" });
+    } else if (e.name === 'ValidationError') {
+      const errors = Object.values(e.errors).map(err => err.message);
+      res.status(422).json({ message: errors.join(', ') });
+    } else {
+      res.status(422).json({ message: "Registration failed. Please try again." });
+    }
   }
 });
 
