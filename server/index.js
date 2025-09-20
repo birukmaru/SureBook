@@ -24,10 +24,27 @@ const bucket = "dawid-booking-app";
 app.use(express.json());
 app.use(cookieParser());
 app.use("/uploads", express.static(__dirname + "/uploads"));
+// Dynamic CORS configuration for both local and production
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "https://sure-book-client.vercel.app",
+];
+
 app.use(
   cors({
     credentials: true,
-    origin: "https://sure-book-client.vercel.app",
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps, Postman, etc.)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        console.log("Blocked by CORS:", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
   })
 );
 
@@ -107,11 +124,13 @@ app.post("/api/register", async (req, res) => {
   }
   
   try {
+
     const userDoc = await User.create({
       name,
       email,
       password: bcrypt.hashSync(password, bcryptSalt),
     });
+  
     res.json(userDoc);
   } catch (e) {
     console.error("Registration error:", e);
@@ -187,7 +206,7 @@ app.post("/api/upload-by-link", async (req, res) => {
     await imageDownloader.image(options);
 
     const filePath = path.join("uploads", filename).replace(/\\/g, "/"); // Normalize path for web
-    res.json({ url: `https://sure-book-server.vercel.app/${filePath}` });
+    res.json({ url: `http://localhost:4000/${filePath}` });
   } catch (error) {
     console.error("Image download failed:", error.message);
     res.status(400).json({ error: "Image download failed" });
@@ -215,7 +234,7 @@ const upload = multer({ storage: storage });
 
 app.post("/api/upload", upload.array("photos", 10), (req, res) => {
   const fileUrls = req.files.map((file) => {
-    return `https://sure-book-server.vercel.app/uploads/${file.filename}`;
+    return `http://localhost:4000/uploads/${file.filename}`;
   });
   res.json(fileUrls);
 });
