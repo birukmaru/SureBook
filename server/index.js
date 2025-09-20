@@ -27,7 +27,7 @@ app.use("/uploads", express.static(__dirname + "/uploads"));
 app.use(
   cors({
     credentials: true,
-    origin: "http://localhost:5173",
+    origin: "https://sure-book-client.vercel.app",
   })
 );
 
@@ -40,7 +40,7 @@ if (!fs.existsSync(uploadsDir)) {
 // Helper function to connect to MongoDB and print a message
 async function connectToDatabase() {
   try {
-    await mongoose.connect("mongodb://127.0.0.1:/SureBook");
+    await mongoose.connect(process.env.MONGO_URI);
 
     console.log("Connected to MongoDB successfully!");
   } catch (error) {
