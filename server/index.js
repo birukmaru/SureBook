@@ -56,9 +56,7 @@ if (!fs.existsSync(uploadsDir)) {
 // Helper function to connect to MongoDB and print a message
 async function connectToDatabase() {
   try {
-    await mongoose.connect(
-      "mongodb+srv://birukmaruDB:MaruBiruk%4013@cluster0.sq5ud3n.mongodb.net/surebook?retryWrites=true&w=majority"
-    );
+    await mongoose.connect(process.env.MONGO_URI);
 
     console.log("Connected to MongoDB successfully!");
   } catch (error) {
