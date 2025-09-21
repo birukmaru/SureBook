@@ -155,17 +155,6 @@ app.post("/api/register", async (req, res) => {
     headers: req.headers,
   });
 
-  // Check if MongoDB is connected
-  if (mongoose.connection.readyState !== 1) {
-    console.error(
-      "MongoDB not connected. ReadyState:",
-      mongoose.connection.readyState
-    );
-    return res.status(500).json({
-      message: "Database connection error. Please try again later.",
-    });
-  }
-
   const { name, email, password } = req.body;
 
   if (!name || !email || !password) {
