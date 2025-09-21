@@ -26,16 +26,15 @@ app.use(cookieParser());
 app.use("/uploads", express.static(__dirname + "/uploads"));
 // Dynamic CORS configuration for both local and production
 const allowedOrigins = [
+  "https://sure-book-client.vercel.app",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
-  "https://sure-book-client.vercel.app",
 ];
 
 app.use(
   cors({
     credentials: true,
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps, Postman, etc.)
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.indexOf(origin) !== -1) {
@@ -57,13 +56,23 @@ if (!fs.existsSync(uploadsDir)) {
 // Helper function to connect to MongoDB and print a message
 async function connectToDatabase() {
   try {
-    await mongoose.connect(
-      "mongodb+srv://birukmaruDB:MaruBiruk%4013@cluster0.sq5ud3n.mongodb.net/surebook?retryWrites=true&w=majority"
-    );
+    await mongoose.connect(process.env.MONGO_URI);
 
     console.log("Connected to MongoDB successfully!");
   } catch (error) {
     console.error("Failed to connect to MongoDB:", error);
+    console.error("Error details:", {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+    });
+
+    // If it's a network/authentication error, provide helpful message
+    if (error.name === "MongoNetworkError" || error.code === "ENOTFOUND") {
+      console.error(
+        "This might be a MongoDB Atlas IP whitelist issue. Check your Network Access settings."
+      );
+    }
   }
 }
 connectToDatabase();
@@ -110,14 +119,59 @@ function getUserDataFromReq(req) {
   });
 }
 
+// Handle preflight requests
+app.options("*", (req, res) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.sendStatus(200);
+});
+
 app.get("/api/test", (req, res) => {
   res.json("test ok");
 });
 
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+  });
+});
+
 app.post("/api/register", async (req, res) => {
+  console.log("Registration request received:", {
+    body: {
+      name: req.body.name,
+      email: req.body.email,
+      password: req.body.password ? "***" : "missing",
+    },
+    headers: req.headers,
+  });
+
+  // Check if MongoDB is connected
+  if (mongoose.connection.readyState !== 1) {
+    console.error(
+      "MongoDB not connected. ReadyState:",
+      mongoose.connection.readyState
+    );
+    return res.status(500).json({
+      message: "Database connection error. Please try again later.",
+    });
+  }
+
   const { name, email, password } = req.body;
 
   if (!name || !email || !password) {
+    console.log("Validation failed - missing fields:", {
+      name: !!name,
+      email: !!email,
+      password: !!password,
+    });
     return res
       .status(422)
       .json({ message: "Name, email, and password are required" });
@@ -139,6 +193,13 @@ app.post("/api/register", async (req, res) => {
     res.json(userDoc);
   } catch (e) {
     console.error("Registration error:", e);
+    console.error("Error details:", {
+      code: e.code,
+      name: e.name,
+      message: e.message,
+      stack: e.stack,
+    });
+
     if (e.code === 11000) {
       res.status(422).json({ message: "Email already exists" });
     } else if (e.name === "ValidationError") {
@@ -213,7 +274,7 @@ app.post("/api/upload-by-link", async (req, res) => {
     await imageDownloader.image(options);
 
     const filePath = path.join("uploads", filename).replace(/\\/g, "/"); // Normalize path for web
-    res.json({ url: `http://localhost:4000/${filePath}` });
+    res.json({ url: `https://sure-book-server.vercel.app/${filePath}` });
   } catch (error) {
     console.error("Image download failed:", error.message);
     res.status(400).json({ error: "Image download failed" });
@@ -241,7 +302,7 @@ const upload = multer({ storage: storage });
 
 app.post("/api/upload", upload.array("photos", 10), (req, res) => {
   const fileUrls = req.files.map((file) => {
-    return `http://localhost:4000/uploads/${file.filename}`;
+    return `https://sure-book-server.vercel.app/uploads/${file.filename}`;
   });
   res.json(fileUrls);
 });

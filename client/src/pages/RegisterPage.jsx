@@ -22,14 +22,21 @@ export default function RegisterPage() {
     }
 
     try {
-      // Make POST request to /register endpoint
-      const response = await axios.post("/register", {
-        name,
-        email,
-        password,
-      });
+      const response = await axios.post(
+        "/register",
+        {
+          name,
+          email,
+          password,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      console.log("Registration response:", response);
 
-      // If registration is successful (status 201 or 200), show success message
       if (response.status === 201 || response.status === 200) {
         setMessage("Registration successful. Redirecting to login...");
         setIsSuccess(true);
@@ -37,12 +44,13 @@ export default function RegisterPage() {
         // Delay navigation by 2 seconds to show the success message
         setTimeout(() => {
           navigate("/login");
-        }, 2000); // 2000 milliseconds = 2 seconds
+        }, 2000);
       }
     } catch (e) {
-      // Capture error response message if available
+      console.error("Registration error:", e.response?.data, e.message);
       const backendMessage =
         e.response?.data?.message ||
+        e.response?.data ||
         "Registration failed. Please try again later.";
       setMessage(backendMessage);
       setIsSuccess(false);

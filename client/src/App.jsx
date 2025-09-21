@@ -16,6 +16,24 @@ import BookingPage from "./pages/BookingPage";
 // Set the base URL directly
 axios.defaults.baseURL = "https://sure-book-server.vercel.app/api";
 axios.defaults.withCredentials = true;
+axios.defaults.headers.common["Content-Type"] = "application/json";
+
+// Add response interceptor for debugging
+axios.interceptors.response.use(
+  (response) => {
+    console.log("Response received:", response.status);
+    return response;
+  },
+  (error) => {
+    console.error(
+      "Response error:",
+      error.response?.status,
+      error.response?.data,
+      error.message
+    );
+    return Promise.reject(error);
+  }
+);
 
 function App() {
   return (
